@@ -1,0 +1,11 @@
+backend/.env
+frontend/.env
+
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+.vite/
+.vite/**
+
+package-lock.json
