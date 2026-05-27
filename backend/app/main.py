@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.routes import tickets
-from app.middleware.cors_middleware import add_cors_middleware
+
+from fastapi.middleware.cors import CORSMiddleware
 from app.utils.exceptions import add_exception_handlers
 from app.config.settings import settings
 
