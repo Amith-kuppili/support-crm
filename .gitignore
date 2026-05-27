@@ -9,3 +9,4 @@ frontend/.env
 .vite/**
 
 package-lock.json
+frontend/pnpm-lock.yaml
