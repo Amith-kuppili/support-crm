@@ -4,7 +4,7 @@ from app.services.ticket_service import TicketService
 from app.schemas.ticket import TicketCreate, TicketUpdate, TicketResponse, TicketStats
 from app.utils.exceptions import TicketNotFoundException, InvalidTicketDataException
 
-router = APIRouter(prefix="/api/tickets", tags=["tickets"])
+router = APIRouter(prefix="/tickets", tags=["tickets"])
 ticket_service = TicketService()
 
 
