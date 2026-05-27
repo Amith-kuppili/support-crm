@@ -1,231 +1,61 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, Bell, Search, X, CheckCheck } from 'lucide-react';
-import { Button } from './ui/Button';
-import { SearchBar } from './SearchBar';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
-import { formatRelativeTime } from '@/lib/utils';
-import { useAppContext } from '@/context/AppContext';
-import { useTheme } from '@/hooks/useTheme';
+import axios from 'axios';
+import { Ticket, TicketStats, CreateTicketData, AddNoteData, Note } from '../types';
 
-interface NavbarProps {
-  onMenuClick: () => void;
-}
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-export function Navbar({ onMenuClick }: NavbarProps) {
-  const [showSearch, setShowSearch] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [seenTicketIds, setSeenTicketIds] = useState<string[]>(() => {
-    if (typeof window === 'undefined') {
-      return [];
-    }
+export const api = axios.create({
+  baseURL: `${API_URL}/api`,
+});
 
-    const stored = window.localStorage.getItem('crm-seen-ticket-notifications');
-    if (!stored) {
-      return [];
-    }
+export const ticketApi = {
+  async getTickets(search?: string, status?: string): Promise<Ticket[]> {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (status && status !== 'all') params.append('status', status);
+    
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const response = await api.get(`/tickets${queryString}`);
+    return response.data as Ticket[];
+  },
 
-    try {
-      const parsed = JSON.parse(stored);
-      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
-    } catch {
-      return [];
-    }
-  });
-  const notificationsRef = useRef<HTMLDivElement | null>(null);
-  const { tickets } = useAppContext();
-  const { theme, setTheme } = useTheme();
-  const isDark = theme === 'dark';
+  async searchTickets(search: string): Promise<Ticket[]> {
+    return this.getTickets(search);
+  },
 
-  const seenTicketIdsKey = 'crm-seen-ticket-notifications';
-  const notificationAnchorKey = 'crm-notification-anchor-at';
+  async filterTickets(status: Ticket['status'] | 'all'): Promise<Ticket[]> {
+    return this.getTickets(undefined, status);
+  },
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
+  async getTicketById(id: string): Promise<Ticket> {
+    const response = await api.get(`/tickets/${id}`);
+    return response.data as Ticket;
+  },
 
-    if (!window.localStorage.getItem(notificationAnchorKey)) {
-      window.localStorage.setItem(notificationAnchorKey, new Date().toISOString());
-    }
-  }, []);
+  async createTicket(data: CreateTicketData): Promise<Ticket> {
+    const response = await api.post('/tickets', {
+      customer_name: data.customerName,
+      customer_email: data.customerEmail,
+      subject: data.subject,
+      description: data.description,
+    });
+    return response.data as Ticket;
+  },
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
-    };
+  async updateTicketStatus(id: string, status: Ticket['status']): Promise<Ticket> {
+    const response = await api.put(`/tickets/${id}`, { status });
+    return response.data as Ticket;
+  },
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  async addNote(data: AddNoteData): Promise<Note> {
+    const response = await api.put(`/tickets/${data.ticketId}`, {
+      note_content: data.content,
+      note_author: data.author,
+    });
+    return response.data as Note;
+  },
 
-  const unseenNotifications = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return [];
-    }
-
-    const anchorValue = window.localStorage.getItem(notificationAnchorKey);
-    const anchorTime = anchorValue ? new Date(anchorValue).getTime() : Date.now();
-
-    return [...tickets]
-      .filter((ticket) => new Date(ticket.createdAt).getTime() >= anchorTime)
-      .filter((ticket) => !seenTicketIds.includes(ticket.id))
-      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-      .slice(0, 10);
-  }, [tickets, seenTicketIds]);
-
-  const persistSeenTickets = (nextSeenIds: string[]) => {
-    setSeenTicketIds(nextSeenIds);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(seenTicketIdsKey, JSON.stringify(nextSeenIds));
-    }
-  };
-
-  const markTicketSeen = (ticketId: string) => {
-    if (seenTicketIds.includes(ticketId)) {
-      return;
-    }
-
-    persistSeenTickets([...seenTicketIds, ticketId]);
-  };
-
-  const markAllSeen = () => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(notificationAnchorKey, new Date().toISOString());
-    }
-    persistSeenTickets([]);
-  };
-
-  const toggleTheme = () => {
-    setTheme(isDark ? 'light' : 'dark');
-  };
-
-  return (
-    <header className="sticky top-0 z-30 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-      <div className="h-full flex items-center justify-between px-4 lg:px-6">
-        {/* Left side */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onMenuClick}
-            className="lg:hidden"
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-
-          {/* Desktop search */}
-          <div className="hidden md:block">
-            <SearchBar />
-          </div>
-        </div>
-
-        {/* Right side */}
-        <div className="flex items-center gap-2">
-          {/* Mobile search toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setShowSearch(!showSearch)}
-          >
-            <Search className="w-5 h-5" />
-          </Button>
-
-          {/* Theme toggle */}
-          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme" title="Toggle theme">
-            <span className="sr-only">Toggle theme</span>
-          </Button>
-
-          {/* Notifications */}
-          <div className="relative" ref={notificationsRef}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative"
-              onClick={() => setShowNotifications((current) => !current)}
-              aria-label="Notifications"
-            >
-              <Bell className="w-5 h-5" />
-              {unseenNotifications.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 rounded-full bg-destructive px-1 text-[10px] font-semibold leading-5 text-destructive-foreground">
-                  {unseenNotifications.length}
-                </span>
-              )}
-            </Button>
-
-            {showNotifications && (
-              <Card className="absolute right-0 mt-3 w-[22rem] max-w-[calc(100vw-2rem)] shadow-xl border-border/80">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <div>
-                    <CardTitle className="text-base">Recent Tickets</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      Unseen created tickets, newest first
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={markAllSeen} disabled={unseenNotifications.length === 0}>
-                    <CheckCheck className="mr-2 h-4 w-4" />
-                    Mark all seen
-                  </Button>
-                </CardHeader>
-                <CardContent className="max-h-[24rem] overflow-y-auto space-y-2">
-                  {unseenNotifications.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-                      No unseen ticket notifications right now.
-                    </div>
-                  ) : (
-                    unseenNotifications.map((ticket) => (
-                      <div
-                        key={ticket.id}
-                        className="rounded-lg border border-border/70 bg-background p-3 transition-colors hover:bg-accent/40"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <Link
-                            to={`/tickets/${ticket.id}`}
-                            className="min-w-0 flex-1"
-                            onClick={() => {
-                              markTicketSeen(ticket.id);
-                              setShowNotifications(false);
-                            }}
-                          >
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="font-medium text-foreground">{ticket.ticketId}</span>
-                              <span>{formatRelativeTime(ticket.createdAt)}</span>
-                            </div>
-                            <p className="mt-1 truncate text-sm font-medium text-foreground">{ticket.subject}</p>
-                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                              {ticket.customer.name} · {ticket.customer.email}
-                            </p>
-                          </Link>
-
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            onClick={() => markTicketSeen(ticket.id)}
-                            aria-label={`Mark ${ticket.ticketId} as seen`}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile search bar */}
-      {showSearch && (
-        <div className="md:hidden border-t border-border p-4 bg-background">
-          <SearchBar />
-        </div>
-      )}
-    </header>
-  );
-}
+  async getStats(): Promise<TicketStats> {
+    const response = await api.get('/tickets/stats');
+    return response.data as TicketStats;
+  },
+};
