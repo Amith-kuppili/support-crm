@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Ticket, TicketStats, TicketStatus } from '../types';
-import { api } from '../api/tickets';
+import { ticketApi as api } from '../api/tickets';
 import { toast } from 'sonner';
 
 interface AppState {
