@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Bell, Search, Sun, Moon, X, CheckCheck } from 'lucide-react';
+import { Menu, Bell, Search, X, CheckCheck } from 'lucide-react';
 import { Button } from './ui/Button';
 import { SearchBar } from './SearchBar';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
@@ -135,8 +135,8 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           </Button>
 
           {/* Theme toggle */}
-          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme" title="Toggle theme">
+            <span className="sr-only">Toggle theme</span>
           </Button>
 
           {/* Notifications */}
