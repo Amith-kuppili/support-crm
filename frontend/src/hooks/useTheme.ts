@@ -1,30 +1,34 @@
 import { useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light' | 'system';
+type Theme = 'dark' | 'light';
+
+const STORAGE_KEY = 'crm-theme';
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>('system');
-
-  useEffect(() => {
-    const stored = localStorage.getItem('crm-theme');
-    if (stored === 'dark' || stored === 'light' || stored === 'system') {
-      setTheme(stored);
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') {
+      return 'light';
     }
-  }, []);
+
+    return window.localStorage.getItem(STORAGE_KEY) === 'dark' ? 'dark' : 'light';
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
-      root.classList.add(systemTheme);
-    } else {
-      root.classList.add(theme);
-    }
+    root.classList.toggle('dark', theme === 'dark');
+    window.localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
+
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEY && (event.newValue === 'dark' || event.newValue === 'light')) {
+        setTheme(event.newValue);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   return { theme, setTheme };
 }
