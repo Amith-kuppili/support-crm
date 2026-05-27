@@ -11,14 +11,21 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add middleware
-add_cors_middleware(app)
+origins = [
+    "https://amith-support-crm.vercel.app/"
+]
 
-# Add exception handlers
-add_exception_handlers(app)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Include routers
-app.include_router(tickets.router)
+# routes
+from app.routes import tickets
+app.include_router(tickets.router, prefix="/api")
 
 # Health check endpoint
 @app.get("/health", tags=["health"])
