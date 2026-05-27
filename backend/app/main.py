@@ -12,7 +12,7 @@ app = FastAPI(
 )
 
 origins = [
-    "https://amith-support-crm.vercel.app/"
+    "https://amith-support-crm.vercel.app"
 ]
 
 app.add_middleware(
