@@ -6,6 +6,7 @@ import { SearchBar } from './SearchBar';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { formatRelativeTime } from '@/lib/utils';
 import { useAppContext } from '@/context/AppContext';
+import { useTheme } from '@/hooks/useTheme';
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -31,11 +32,10 @@ export function Navbar({ onMenuClick }: NavbarProps) {
       return [];
     }
   });
-  const [isDark, setIsDark] = useState(() => {
-    return document.documentElement.classList.contains('dark');
-  });
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const { tickets } = useAppContext();
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === 'dark';
 
   const seenTicketIdsKey = 'crm-seen-ticket-notifications';
   const notificationAnchorKey = 'crm-notification-anchor-at';
@@ -98,43 +98,8 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     persistSeenTickets([]);
   };
 
-  // Listen for storage changes (for cross-tab sync)
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const stored = localStorage.getItem('crm-theme');
-      const hasDark = document.documentElement.classList.contains('dark');
-      setIsDark(stored === 'dark' || (!stored && hasDark));
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    // Also check periodically for changes made in same tab
-    const interval = setInterval(() => {
-      const hasDark = document.documentElement.classList.contains('dark');
-      if (hasDark !== isDark) {
-        setIsDark(hasDark);
-      }
-    }, 100);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
-  }, [isDark]);
-
   const toggleTheme = () => {
-    const root = window.document.documentElement;
-    const newIsDark = !isDark;
-
-    if (newIsDark) {
-      root.classList.add('dark');
-      localStorage.setItem('crm-theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('crm-theme', 'light');
-    }
-
-    setIsDark(newIsDark);
+    setTheme(isDark ? 'light' : 'dark');
   };
 
   return (
