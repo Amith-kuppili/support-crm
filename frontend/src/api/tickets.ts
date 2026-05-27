@@ -1,42 +1,21 @@
+import axios from 'axios';
 import { Ticket, TicketStats, CreateTicketData, AddNoteData, Note } from '../types';
 
-// Get base URL from environment variable
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-// Helper function for API requests
-const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_BASE_URL}/api${endpoint}`;
-  const config = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  };
+export const api = axios.create({
+  baseURL: `${API_URL}/api`,
+});
 
-  try {
-    const response = await fetch(url, config);
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error(`API request failed: ${endpoint}`, error);
-    throw error;
-  }
-};
-
-export const api = {
+export const ticketApi = {
   async getTickets(search?: string, status?: string): Promise<Ticket[]> {
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     if (status && status !== 'all') params.append('status', status);
     
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    return apiRequest(`/tickets${queryString}`);
+    const response = await api.get<Ticket[]>(`/tickets${queryString}`);
+    return response.data;
   },
 
   async searchTickets(search: string): Promise<Ticket[]> {
@@ -48,39 +27,35 @@ export const api = {
   },
 
   async getTicketById(id: string): Promise<Ticket> {
-    return apiRequest(`/tickets/${id}`);
+    const response = await api.get<Ticket>(`/tickets/${id}`);
+    return response.data;
   },
 
   async createTicket(data: CreateTicketData): Promise<Ticket> {
-    return apiRequest('/tickets', {
-      method: 'POST',
-      body: JSON.stringify({
+    const response = await api.post<Ticket>('/tickets', {
         customer_name: data.customerName,
         customer_email: data.customerEmail,
         subject: data.subject,
         description: data.description,
-      }),
     });
+    return response.data;
   },
 
   async updateTicketStatus(id: string, status: Ticket['status']): Promise<Ticket> {
-    return apiRequest(`/tickets/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ status }),
-    });
+    const response = await api.put<Ticket>(`/tickets/${id}`, { status });
+    return response.data;
   },
 
   async addNote(data: AddNoteData): Promise<Note> {
-    return apiRequest(`/tickets/${data.ticketId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ 
-        note_content: data.content,
-        note_author: data.author,
-      }),
+    const response = await api.put<Note>(`/tickets/${data.ticketId}`, {
+      note_content: data.content,
+      note_author: data.author,
     });
+    return response.data;
   },
 
   async getStats(): Promise<TicketStats> {
-    return apiRequest('/tickets/stats');
+    const response = await api.get<TicketStats>('/tickets/stats');
+    return response.data;
   },
 };
