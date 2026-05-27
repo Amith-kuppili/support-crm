@@ -18,7 +18,7 @@ async def get_ticket_stats():
         raise HTTPException(status_code=500, detail=f"Failed to fetch ticket stats: {str(e)}")
 
 
-@router.post("/", status_code=201)
+@router.post("", status_code=201)
 async def create_ticket(ticket_data: TicketCreate):
     """Create a new support ticket"""
     try:
@@ -28,7 +28,7 @@ async def create_ticket(ticket_data: TicketCreate):
         raise HTTPException(status_code=500, detail=f"Failed to create ticket: {str(e)}")
 
 
-@router.get("/")
+@router.get("")
 async def list_tickets(
     search: Optional[str] = Query(None, description="Search across ticket fields"),
     status: Optional[str] = Query(None, description="Filter tickets by status")
